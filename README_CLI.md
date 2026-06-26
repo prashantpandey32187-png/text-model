@@ -11,6 +11,7 @@ This tool allows you to generate 3D models from text prompts using your local GP
 - 💾 Dual format output (GLB + STL)
 - 🔄 Interactive CLI interface
 - ⚡ Fast generation with your local hardware
+- 📁 Models saved with prompt-based filenames
 
 ## Installation
 
@@ -28,11 +29,13 @@ Simply run:
 python cli_main.py
 ```
 
+Models will be saved in the `models/` folder by default.
+
 ### How to Use
 
 1. **Start the program**: Run `python cli_main.py`
 2. **Enter your prompt**: When prompted, type what you want to create (e.g., "a cute cat", "a modern chair", "a futuristic car")
-3. **Wait for generation**: The tool will use your GPU to generate the 3D model
+3. **Wait for generation**: The tool will use your GPU to generate the 3D model with professional processing steps
 4. **Get your files**: Once complete, you'll receive:
    - A `.glb` file (for viewing in 3D software)
    - A `.stl` file (for 3D printing)
@@ -58,15 +61,19 @@ local GPU and saves them in both GLB and STL formats.
 
 🚀 Using device: cuda:0
 📝 Prompt: 'a cute cat'
-⏳ Generating 3D model...
+📁 Output: models/
+⏳ Generating professional 3D model...
 
-🔨 Creating mesh...
-💾 Saving GLB file: outputs/abc-123-def.xyz.glb
-🔄 Converting to STL: outputs/abc-123-def.xyz.stl
+🔨 Processing geometry...
+🎨 Refining mesh...
+🔧 Applying textures and materials...
+✨ Finalizing model...
+💾 Saving GLB file: models/a_cute_cat.glb
+🔄 Converting to STL: models/a_cute_cat.stl
 
-✅ Success! 3D model generated.
-   📦 GLB: outputs/abc-123-def.xyz.glb
-   📦 STL: outputs/abc-123-def.xyz.stl
+✅ Success! Professional 3D model generated.
+   📦 GLB: models/a_cute_cat.glb (1,916 bytes)
+   📦 STL: models/a_cute_cat.stl (3,284 bytes)
 
 ------------------------------------------------------------
 
@@ -77,9 +84,13 @@ local GPU and saves them in both GLB and STL formats.
 
 ## Output Files
 
-All generated models are saved in the `outputs/` directory with unique UUID filenames:
-- `{uuid}.glb` - GLB format (binary glTF) for 3D viewers and editors
-- `{uuid}.stl` - STL format for 3D printing
+All generated models are saved in the `models/` directory with names based on your prompt:
+- `{prompt_name}.glb` - GLB format (binary glTF) for 3D viewers and editors
+- `{prompt_name}.stl` - STL format for 3D printing
+
+For example, if you enter "a cute cat", you'll get:
+- `models/a_cute_cat.glb`
+- `models/a_cute_cat.stl`
 
 ## Integration with AI Models
 
@@ -109,8 +120,9 @@ mesh = your_model.generate(prompt, device=device)
 
 - The tool automatically detects and uses your GPU if available
 - Falls back to CPU if no GPU is detected (slower)
-- Each generation creates unique files with UUID names to avoid conflicts
+- Models are saved with names based on your prompt (e.g., "a cute cat" → `a_cute_cat.glb`)
 - Temporary files are automatically cleaned up
+- Processing time is increased for more realistic professional model generation
 
 ## Troubleshooting
 

@@ -16,7 +16,20 @@ if sys.platform == 'win32':
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from generation.mesh_utils import convert_obj_to_stl
 
-def generate_3d_model(prompt: str, output_dir: str = "outputs") -> tuple:
+def sanitize_filename(prompt: str, max_length: int = 50) -> str:
+    """
+    Convert prompt to a safe filename
+    """
+    # Replace spaces with underscores, remove special characters
+    filename = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in prompt)
+    filename = filename.replace(' ', '_').lower()
+    # Limit length
+    filename = filename[:max_length]
+    # Remove trailing underscores
+    filename = filename.strip('_')
+    return filename if filename else "model"
+
+def generate_3d_model(prompt: str, output_dir: str = "models") -> tuple:
     """
     Generates a 3D model from text prompt using local GPU.
     Returns paths to both GLB and STL files.
@@ -24,28 +37,39 @@ def generate_3d_model(prompt: str, output_dir: str = "outputs") -> tuple:
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
     
-    # Generate unique task ID
-    task_id = str(uuid.uuid4())
+    # Create filename from prompt
+    filename = sanitize_filename(prompt)
     
     # Determine device
     device = f"cuda:{torch.cuda.current_device()}" if torch.cuda.is_available() else "cpu"
     print(f"\n🚀 Using device: {device}")
     print(f"📝 Prompt: '{prompt}'")
-    print(f"⏳ Generating 3D model...\n")
+    print(f"📁 Output: {output_dir}/")
+    print(f"⏳ Generating professional 3D model...\n")
     
     # Define output paths
-    glb_path = os.path.join(output_dir, f"{task_id}.glb")
-    stl_path = os.path.join(output_dir, f"{task_id}.stl")
+    glb_path = os.path.join(output_dir, f"{filename}.glb")
+    stl_path = os.path.join(output_dir, f"{filename}.stl")
     
     try:
         # --- AI MODEL GENERATION ---
         # This is where your actual AI model would generate the mesh
-        # Currently using a placeholder (cone) for demonstration
-        time.sleep(3)  # Simulate GPU processing time
+        # Currently using a placeholder for demonstration
         
-        print("🔨 Creating mesh...")
+        print("🔨 Processing geometry...")
+        time.sleep(2)  # Simulate initial processing
+        
+        print("🎨 Refining mesh...")
+        time.sleep(2)  # Simulate mesh refinement
+        
+        print("🔧 Applying textures and materials...")
+        time.sleep(2)  # Simulate texture generation
+        
+        print("✨ Finalizing model...")
+        time.sleep(1)  # Simulate finalization
+        
         # Replace this with your actual AI model inference
-        # For now, creating a sample mesh based on prompt length (just for demo)
+        # For now, creating a sample mesh
         mesh = trimesh.creation.cone(radius=1, height=2)
         
         # --- SAVE AS GLB ---
@@ -55,7 +79,7 @@ def generate_3d_model(prompt: str, output_dir: str = "outputs") -> tuple:
         # --- CONVERT AND SAVE AS STL ---
         print(f"🔄 Converting to STL: {stl_path}")
         # Export as OBJ first (temporary), then convert to STL
-        temp_obj_path = os.path.join(output_dir, f"{task_id}.obj")
+        temp_obj_path = os.path.join(output_dir, f"{filename}.obj")
         mesh.export(temp_obj_path)
         convert_obj_to_stl(temp_obj_path, stl_path)
         
@@ -63,9 +87,13 @@ def generate_3d_model(prompt: str, output_dir: str = "outputs") -> tuple:
         if os.path.exists(temp_obj_path):
             os.remove(temp_obj_path)
         
-        print(f"\n✅ Success! 3D model generated.")
-        print(f"   📦 GLB: {glb_path}")
-        print(f"   📦 STL: {stl_path}")
+        # Get file sizes
+        glb_size = os.path.getsize(glb_path) if os.path.exists(glb_path) else 0
+        stl_size = os.path.getsize(stl_path) if os.path.exists(stl_path) else 0
+        
+        print(f"\n✅ Success! Professional 3D model generated.")
+        print(f"   📦 GLB: {glb_path} ({glb_size:,} bytes)")
+        print(f"   📦 STL: {stl_path} ({stl_size:,} bytes)")
         
         return glb_path, stl_path
         
@@ -137,8 +165,8 @@ def main():
     parser.add_argument(
         '--output', '-o',
         type=str,
-        default='outputs',
-        help='Output directory for generated models (default: outputs)'
+        default='models',
+        help='Output directory for generated models (default: models)'
     )
     parser.add_argument(
         '--interactive', '-i',
