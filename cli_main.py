@@ -15,6 +15,7 @@ if sys.platform == 'win32':
 # Add current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from generation.mesh_utils import convert_obj_to_stl
+from generation.text_to_3d import TextTo3DGenerator
 
 def sanitize_filename(prompt: str, max_length: int = 50) -> str:
     """
@@ -31,7 +32,7 @@ def sanitize_filename(prompt: str, max_length: int = 50) -> str:
 
 def generate_3d_model(prompt: str, output_dir: str = "models") -> tuple:
     """
-    Generates a 3D model from text prompt using local GPU.
+    Generates a 3D model from text prompt using AI.
     Returns paths to both GLB and STL files.
     """
     # Ensure output directory exists
@@ -40,46 +41,29 @@ def generate_3d_model(prompt: str, output_dir: str = "models") -> tuple:
     # Create filename from prompt
     filename = sanitize_filename(prompt)
     
-    # Determine device
-    device = f"cuda:{torch.cuda.current_device()}" if torch.cuda.is_available() else "cpu"
-    print(f"\n🚀 Using device: {device}")
-    print(f"📝 Prompt: '{prompt}'")
-    print(f"📁 Output: {output_dir}/")
-    print(f"⏳ Generating professional 3D model...\n")
-    
     # Define output paths
     glb_path = os.path.join(output_dir, f"{filename}.glb")
     stl_path = os.path.join(output_dir, f"{filename}.stl")
     
     try:
-        # --- AI MODEL GENERATION ---
-        # This is where your actual AI model would generate the mesh
-        # Currently using a placeholder for demonstration
+        print(f"\n🚀 Starting 3D model generation...")
+        print(f"📝 Prompt: '{prompt}'")
+        print(f"📁 Output: {output_dir}/")
+        print(f"⏳ This may take a minute...\n")
         
-        print("🔨 Processing geometry...")
-        time.sleep(2)  # Simulate initial processing
+        # Initialize the AI generator
+        generator = TextTo3DGenerator(backend='huggingface')
         
-        print("🎨 Refining mesh...")
-        time.sleep(2)  # Simulate mesh refinement
+        # Generate the GLB model using AI
+        print("🔨 Generating 3D model from your prompt...")
+        generator.generate(prompt, glb_path)
         
-        print("🔧 Applying textures and materials...")
-        time.sleep(2)  # Simulate texture generation
-        
-        print("✨ Finalizing model...")
-        time.sleep(1)  # Simulate finalization
-        
-        # Replace this with your actual AI model inference
-        # For now, creating a sample mesh
-        mesh = trimesh.creation.cone(radius=1, height=2)
-        
-        # --- SAVE AS GLB ---
-        print(f"💾 Saving GLB file: {glb_path}")
-        mesh.export(glb_path)
-        
-        # --- CONVERT AND SAVE AS STL ---
-        print(f"🔄 Converting to STL: {stl_path}")
-        # Export as OBJ first (temporary), then convert to STL
+        # Convert GLB to STL
+        print(f"\n🔄 Converting to STL format...")
         temp_obj_path = os.path.join(output_dir, f"{filename}.obj")
+        
+        # Load and export as OBJ for conversion
+        mesh = trimesh.load(glb_path)
         mesh.export(temp_obj_path)
         convert_obj_to_stl(temp_obj_path, stl_path)
         
@@ -91,7 +75,7 @@ def generate_3d_model(prompt: str, output_dir: str = "models") -> tuple:
         glb_size = os.path.getsize(glb_path) if os.path.exists(glb_path) else 0
         stl_size = os.path.getsize(stl_path) if os.path.exists(stl_path) else 0
         
-        print(f"\n✅ Success! Professional 3D model generated.")
+        print(f"\n✅ Success! 3D model generated from your prompt.")
         print(f"   📦 GLB: {glb_path} ({glb_size:,} bytes)")
         print(f"   📦 STL: {stl_path} ({stl_size:,} bytes)")
         
@@ -99,6 +83,8 @@ def generate_3d_model(prompt: str, output_dir: str = "models") -> tuple:
         
     except Exception as e:
         print(f"\n❌ Error during generation: {e}")
+        import traceback
+        traceback.print_exc()
         # Clean up partial files
         for path in [glb_path, stl_path]:
             if os.path.exists(path):
