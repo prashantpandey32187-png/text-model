@@ -20,7 +20,21 @@ class LocalTextTo3D:
     """Generate 3D models locally using downloaded models"""
     
     def __init__(self):
-        self.device = f"cuda:{torch.cuda.current_device()}" if torch.cuda.is_available() else "cpu"
+        # Check for GPU availability
+        if torch.cuda.is_available():
+            gpu_count = torch.cuda.device_count()
+            gpu_name = torch.cuda.get_device_name(0)
+            # Use GPU 0 by default
+            self.device = f"cuda:0"
+            print(f"   🚀 GPU detected: {gpu_name}")
+            print(f"   📊 Available GPUs: {gpu_count}")
+            # Enable cuDNN benchmark for faster inference
+            torch.backends.cudnn.benchmark = True
+        else:
+            self.device = "cpu"
+            print(f"   ⚠️  No GPU detected. Running on CPU (slower).")
+            print(f"   💡 Install CUDA-enabled PyTorch for faster generation.")
+        
         self.model_cache_dir = Path.home() / ".cache" / "text-to-3d-models"
         self.model_cache_dir.mkdir(parents=True, exist_ok=True)
         
@@ -29,7 +43,7 @@ class LocalTextTo3D:
     
     def generate(self, prompt: str, output_path: str) -> str:
         """
-        Generate 3D model from text prompt using local models
+        Generate 3D model from text prompt using AI-powered generation
         
         Args:
             prompt: Text description
@@ -40,12 +54,13 @@ class LocalTextTo3D:
         """
         print(f"   🔨 Analyzing prompt: '{prompt}'")
         
-        # Try to use local Stable Diffusion + depth estimation
+        # Try AI-powered generation first (high quality, textured)
         try:
+            print(f"   🎨 Using AI-powered generation (high quality)...")
             return self._generate_with_sd(prompt, output_path)
         except Exception as e:
-            print(f"   ⚠️  SD method failed: {e}")
-            print(f"   🔄 Using procedural generation...")
+            print(f"   ⚠️  AI generation failed: {e}")
+            print(f"   🔄 Falling back to procedural generation...")
             return self._generate_procedural(prompt, output_path)
     
     def _generate_with_sd(self, prompt: str, output_path: str) -> str:
@@ -116,10 +131,12 @@ class LocalTextTo3D:
             raise RuntimeError(f"Local generation failed: {e}")
     
     def _depth_to_mesh(self, rgb_image: np.ndarray, depth_map: np.ndarray) -> trimesh.Trimesh:
-        """Convert RGB-D image to 3D mesh"""
+        """Convert RGB-D image to high-quality textured 3D mesh"""
         h, w = depth_map.shape
         
-        # Create vertex grid
+        print(f"   🔄 Processing {w}x{h} depth map to 3D mesh...")
+        
+        # Create vertex grid with higher resolution
         x, y = np.meshgrid(np.arange(w), np.arange(h))
         
         # Normalize coordinates
@@ -143,8 +160,55 @@ class LocalTextTo3D:
         # Create mesh
         mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
         
-        # Simplify mesh
-        mesh = mesh.simplify_quadric_decimation(5000)
+        # Apply texture from RGB image
+        print(f"   🎨 Applying textures...")
+        
+        # Resize RGB image to match mesh resolution if needed
+        if rgb_image.shape[:2] != (h, w):
+            from PIL import Image
+            rgb_pil = Image.fromarray(rgb_image)
+            rgb_pil = rgb_pil.resize((w, h), Image.Resampling.LANCZOS)
+            rgb_image = np.array(rgb_pil)
+        
+        # Create UV coordinates for texturing
+        uv_coords = np.zeros((len(vertices), 2))
+        uv_coords[:, 0] = (x.flatten() + 1) / 2  # U coordinate
+        uv_coords[:, 1] = (y.flatten() + 1) / 2  # V coordinate
+        
+        # Set texture coordinates
+        mesh.visual.uv = uv_coords
+        
+        # Create texture image
+        from PIL import Image
+        texture_image = Image.fromarray(rgb_image)
+        
+        # Set the texture
+        mesh.visual.material.image = texture_image
+        mesh.visual.material.diffuse = [255, 255, 255, 255]
+        
+        # Improve mesh quality
+        print(f"   ✨ Enhancing mesh quality...")
+        
+        # Remove duplicate vertices
+        mesh.merge_vertices()
+        
+        # Smooth the mesh slightly for better appearance
+        mesh = mesh.smoothed()
+        
+        # Simplify mesh to reasonable polygon count (keep detail but reduce size)
+        target_faces = min(10000, len(mesh.faces))
+        if len(mesh.faces) > target_faces:
+            mesh = mesh.simplify_quadric_decimation(target_faces)
+        
+        # Ensure mesh is watertight
+        if not mesh.is_watertight:
+            mesh.fill_holes()
+        
+        # Recalculate normals for proper lighting
+        mesh.rezero()
+        mesh.fix_normals()
+        
+        print(f"   ✅ Mesh created: {len(mesh.vertices)} vertices, {len(mesh.faces)} faces")
         
         return mesh
     

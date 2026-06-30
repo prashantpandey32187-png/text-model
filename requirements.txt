@@ -3,8 +3,10 @@ trimesh>=3.23.0
 numpy>=1.24.0
 requests>=2.31.0
 python-dotenv>=1.0.0
-# Optional: For AI-powered generation (downloads models on first run)
-# diffusers>=0.25.0
-# transformers>=4.30.0
-# opencv-python>=4.8.0
-# accelerate>=0.20.0
+# Required for AI-powered generation with GPU support
+torchvision>=0.15.0
+diffusers>=0.25.0
+transformers>=4.30.0
+opencv-python>=4.8.0
+accelerate>=0.20.0
+pillow>=10.0.0
